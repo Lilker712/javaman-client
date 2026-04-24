@@ -4,7 +4,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
-public class javaman-client extends Application {
+public class javaman extends Application {
 
     @Override
     public void start(Stage stage) {
