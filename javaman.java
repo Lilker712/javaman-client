@@ -5,6 +5,13 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+
 
 public class javaman extends Application {
     
@@ -108,11 +115,73 @@ public class javaman extends Application {
             String method = methodBox.getValue();
             String url = urlField.getText();
 
-            responseArea.setText("Sending " + method + " request to:\n" + url);
+            String message = "";
+            switch(method) {
+            case "GET":
+                message = methodGET(url);
+                break;
+            case "POST":
+                message = methodPOST(url);
+                break;
+            case "PUT":
+                message = methodPUT(url);
+                break;
+            case "DELETE":
+                message = methodDELETE(url);
+                break;
+            }
+
+            responseArea.setText(message);
         });
 
         VBox root = new VBox(10, topBar, responseArea);
 
+        return root;
+    }
+
+    public static String methodGET(String url) {
+        String root = "";
+        
+        // 1. Create a client
+        HttpClient client = HttpClient.newHttpClient();
+
+        // 2. Build the request
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .GET() // Default, but good for clarity
+                .build();
+
+        try {
+            // 3. Send the request and get the response
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            // 4. Print status code and body
+            String x = "Status Code: " + response.statusCode();
+            System.out.println(x);
+            root = x;
+            x = "Response Body: " + response.body();
+            root = root + "\n" + x;
+            System.out.println(x);
+
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return root;
+    }
+
+    public static String methodPOST(String url) {
+        String root = "";
+        return root;
+    }
+
+    public static String methodPUT(String url) {
+        String root = "";
+        return root;
+    }
+
+    public static String methodDELETE(String url) {
+        String root = "";
         return root;
     }
 
