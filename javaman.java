@@ -12,6 +12,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
+import javax.swing.JOptionPane;
+
 
 public class javaman extends Application {
     
@@ -22,6 +24,7 @@ public class javaman extends Application {
         rightContainer.getChildren().setAll(rightMenu(1));
 
         HBox root = new HBox(leftMenu(), rightContainer);
+        HBox.setHgrow(rightContainer, Priority.ALWAYS);
         root.setPadding(new javafx.geometry.Insets(0));
 
         Scene scene = new Scene(root, 600, 400);
@@ -31,7 +34,6 @@ public class javaman extends Application {
         stage.show();
 
     }
-
     
     public static HBox leftMenu() {
         Button GotoButtonRequests = new Button("1");
@@ -97,17 +99,33 @@ public class javaman extends Application {
         // Send button
         Button sendButton = new Button("Send");
 
+        // Input area
+        TextArea inputArea = new TextArea();
+        inputArea.setPromptText("{\n  \"title\": \"Hello\",\n  \"body\": \"World\"\n}");
+        inputArea.setWrapText(true);
+
         // Response area
         TextArea responseArea = new TextArea();
-        responseArea.setPromptText("Response will appear here...");
+        responseArea.setPromptText("");
         responseArea.setWrapText(true);
+        responseArea.setEditable(false);
+
+        // Bottom bar layout (input + response)
+        VBox bottomBar = new VBox(10, inputArea, responseArea);
+        bottomBar.setPadding(new javafx.geometry.Insets(0));
+        
+        VBox.setVgrow(inputArea, Priority.ALWAYS);
+        VBox.setVgrow(responseArea, Priority.ALWAYS);
+        
+        bottomBar.setMaxWidth(Double.MAX_VALUE);
+
 
         // Top bar layout (method + URL + button)
         HBox topBar = new HBox(10, methodBox, urlField, sendButton);
         topBar.setPadding(new javafx.geometry.Insets(0));
 
-        // Main in Tab requests        
-        VBox rightMenu = new VBox(10, topBar, responseArea);
+        // Main in Tab requests    
+        VBox rightMenu = new VBox(10, topBar, bottomBar);
         rightMenu.setPadding(new javafx.geometry.Insets(10));
 
         // Button action (dummy for now)
@@ -115,47 +133,51 @@ public class javaman extends Application {
             String method = methodBox.getValue();
             String url = urlField.getText();
 
-            String message = "";
+            String message = inputArea.getText();
+
+            HttpClient client = HttpClient.newHttpClient();
+
             switch(method) {
             case "GET":
-                message = methodGET(url);
+                message = methodGET(url, client);
                 break;
             case "POST":
-                message = methodPOST(url);
+                System.out.println(message);
+                message = methodPOST(url, client, message);
                 break;
             case "PUT":
-                message = methodPUT(url);
+                message = methodPUT(url, client, message);
                 break;
             case "DELETE":
-                message = methodDELETE(url);
+                message = methodDELETE(url, client);
                 break;
             }
 
-            responseArea.setText(message);
+            responseArea.appendText(message + "\n");
         });
 
-        VBox root = new VBox(10, topBar, responseArea);
+        VBox.setVgrow(bottomBar, Priority.ALWAYS);
+
+        VBox root = new VBox(10, rightMenu);
+        VBox.setVgrow(rightMenu, Priority.ALWAYS);
 
         return root;
     }
 
-    public static String methodGET(String url) {
+    public static String methodGET(String url, HttpClient client) {
         String root = "";
         
-        // 1. Create a client
-        HttpClient client = HttpClient.newHttpClient();
-
-        // 2. Build the request
+        // Build the request
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .GET() // Default, but good for clarity
+                .GET()
                 .build();
 
         try {
-            // 3. Send the request and get the response
+            // Send the request and get the response
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-            // 4. Print status code and body
+            // Print status code and body
             String x = "Status Code: " + response.statusCode();
             System.out.println(x);
             root = x;
@@ -170,18 +192,95 @@ public class javaman extends Application {
         return root;
     }
 
-    public static String methodPOST(String url) {
+    public static String methodPOST(String url, HttpClient client, String jsonBody) {
         String root = "";
+
+        // Build the request
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json") // Tell the server it's JSON
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody)) // Attach the body
+                .build();
+
+        try {
+            // Send the request
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            // Print status code and body
+            String x = "Status Code: " + response.statusCode();
+            System.out.println(x);
+            root = x;
+            x = "Response Body: " + response.body();
+            root = root + "\n" + x;
+            System.out.println(x);
+
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+
         return root;
     }
 
-    public static String methodPUT(String url) {
+    public static String methodPUT(String url, HttpClient client, String jsonBody) {
         String root = "";
+
+        // Build the PUT request
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+
+        try {
+            String id = url.substring(url.lastIndexOf("/"));
+            root = "Updating resource " + id + " ...";
+            System.out.println(root);
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            // Show the result
+            String x = "Status Code: " + response.statusCode();
+            System.out.println(x);
+            root = x;
+            x = "Response Body: " + response.body();
+            root = root + "\n" + x;
+            System.out.println(x);
+                
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(null, "Error: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+
         return root;
     }
 
-    public static String methodDELETE(String url) {
+    public static String methodDELETE(String url, HttpClient client) {
         String root = "";
+
+        // Build the DELETE request
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .DELETE()
+            .build();
+
+        try {
+            String id = url.substring(url.lastIndexOf("/"));
+            root = "Deleting resource " + id + "...";
+            System.out.println(root);
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            // Show the result
+            // 200 OK or 204 No Content are the usual success codes for DELETE
+            String x = "Status Code: " + response.statusCode();
+            System.out.println(x);
+            root = x;
+            x = "Response Body: " + response.body();
+            root = root + "\n" + x;
+            System.out.println(x);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(null, "Error: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+
         return root;
     }
 
