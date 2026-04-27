@@ -89,7 +89,7 @@ public class javaman extends Application {
     public static VBox requestsTab() {
         // Method dropdown
         ComboBox<String> methodBox = new ComboBox<>();
-        methodBox.getItems().addAll("GET", "POST", "PUT", "DELETE");
+        methodBox.getItems().addAll("GET", "POST", "PUT", "DELETE", "PATCH");
         methodBox.setValue("GET");
 
         // URL input
@@ -150,6 +150,9 @@ public class javaman extends Application {
                 break;
             case "DELETE":
                 message = methodDELETE(url, client);
+                break;
+            case "PATCH":
+                message = methodPATCHE(url, client, message);
                 break;
             }
 
@@ -240,7 +243,7 @@ public class javaman extends Application {
             // Show the result
             String x = "Status Code: " + response.statusCode();
             System.out.println(x);
-            root = x;
+            root += x;
             x = "Response Body: " + response.body();
             root = root + "\n" + x;
             System.out.println(x);
@@ -272,7 +275,7 @@ public class javaman extends Application {
             // 200 OK or 204 No Content are the usual success codes for DELETE
             String x = "Status Code: " + response.statusCode();
             System.out.println(x);
-            root = x;
+            root += x;
             x = "Response Body: " + response.body();
             root = root + "\n" + x;
             System.out.println(x);
@@ -282,6 +285,38 @@ public class javaman extends Application {
         }
 
         return root;
+    }
+
+    private static String methodPATCHE(String url, HttpClient client, String jsonBody) {
+        String root = "";
+
+        // Build the request using .method("PATCH", ...)
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .method("PATCH", HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+
+        try {
+            String id = url.substring(url.lastIndexOf("/"));
+            String x = "Updating resource " + id + " ...";
+            System.out.println(x);
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            x = "Status Code: " + response.statusCode();
+            System.out.println(x);
+            root = x;
+            x = "Updated Content: " + response.body();
+            root = root + "\n" + x;
+            System.out.println(x);
+                
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(null, "Error: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+
+        return root;
+
     }
 
     public static VBox logsTab() {
